@@ -14,9 +14,11 @@
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
     "@toolpad/core": "^0.14.0",
+    "axios": "^1.8.4",
     "next": "15.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sipsayuri": "file:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
