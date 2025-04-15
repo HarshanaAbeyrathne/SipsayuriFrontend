@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import axiosInstance from '../../components/axiosConfig'; // Update the path to match your project structure
 
 function AddTeacherPage() {
   const [formData, setFormData] = useState({
@@ -8,6 +9,10 @@ function AddTeacherPage() {
     mobile: '',
     schoolName: ''
   });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -17,11 +22,32 @@ function AddTeacherPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitted data:', formData);
-    // Add your submission logic here
+    setIsLoading(true);
+    setError(null);
+    setSuccess(false);
     
+    try {
+      const response = await axiosInstance.post('/teachers', formData);
+      console.log('Teacher added successfully:', response.data);
+      
+      // Reset form after successful submission
+      setFormData({
+        teacherName: '',
+        mobile: '',
+        schoolName: ''
+      });
+      
+      setSuccess(true);
+      // You could redirect here if needed
+      // window.location.href = '/teachers';
+    } catch (error) {
+      console.error('Error adding teacher:', error);
+      setError('Failed to add teacher. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +57,18 @@ function AddTeacherPage() {
           <h2 className="text-3xl font-bold text-gray-800">Add New Teacher</h2>
           <p className="mt-2 text-sm text-gray-600">Enter the teacher's information below</p>
         </div>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md">
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-600 rounded-md">
+            Teacher added successfully!
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -72,7 +110,7 @@ function AddTeacherPage() {
             <input
               type="text"
               name="schoolName"
-              id="schoolName" 
+              id="schoolName"
               value={formData.schoolName}
               onChange={handleChange}
               required
@@ -90,9 +128,12 @@ function AddTeacherPage() {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+              className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isLoading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              Add Teacher
+              {isLoading ? 'Adding...' : 'Add Teacher'}
             </button>
           </div>
         </form>
