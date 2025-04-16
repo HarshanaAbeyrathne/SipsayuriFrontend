@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import axiosInstance from '../../components/axiosConfig'; // Update the path to match your project structure
+import axiosInstance from '../../../components/axiosConfig'; // Update the path to match your project structure
 
 function AddTeacherPage() {
   const [formData, setFormData] = useState({
@@ -27,28 +27,32 @@ function AddTeacherPage() {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
-    
+  
     try {
       const response = await axiosInstance.post('/teachers', formData);
       console.log('Teacher added successfully:', response.data);
-      
+  
       // Reset form after successful submission
       setFormData({
         teacherName: '',
         mobile: '',
         schoolName: ''
       });
-      
+  
       setSuccess(true);
-      // You could redirect here if needed
-      // window.location.href = '/teachers';
-    } catch (error) {
-      console.error('Error adding teacher:', error);
+  } catch (error: any) {
+    console.error('Error adding teacher:', error);
+  
+    // Check for specific error response from the backend
+    if (error.response && error.response.status === 400 && error.response.data.message) {
+      setError(error.response.data.message); // Display the error message from the backend
+    } else {
       setError('Failed to add teacher. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

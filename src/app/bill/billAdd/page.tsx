@@ -1,6 +1,8 @@
 'use client';
+import axiosInstance from '../../../components/axiosConfig'; // Update the path if necessary
 
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 
 // Interfaces
 interface BookEntry {
@@ -14,17 +16,17 @@ interface BookEntry {
 
 interface Teacher {
   id: number;
-  name: string;
+  teacherName: string;
   mobile: string;
-  school: string;
+  schoolName: string;
 }
 
 // Mock teacher data (replace with API call in production)
-const teacherData: Teacher[] = [
-  { id: 1, name: 'Mrs. Smith', mobile: '9876543210', school: 'Central High School' },
-  { id: 2, name: 'Mr. Johnson', mobile: '8765432109', school: 'Westside Elementary' },
-  { id: 3, name: 'Ms. Williams', mobile: '7654321098', school: 'Eastview Academy' }
-];
+// const teacherData: Teacher[] = [
+//   { id: 1, name: 'Mrs. Smith', mobile: '9876543210', school: 'Central High School' },
+//   { id: 2, name: 'Mr. Johnson', mobile: '8765432109', school: 'Westside Elementary' },
+//   { id: 3, name: 'Ms. Williams', mobile: '7654321098', school: 'Eastview Academy' }
+// ];
 
 export default function AddBillPage() {
   const [billNumber, setBillNumber] = useState('');
@@ -36,11 +38,24 @@ export default function AddBillPage() {
     { id: 1, bookName: '', price: 100, quantity: 25, freeIssue: 1, total: 2500 },
   ]);
   const [nextId, setNextId] = useState(2);
+  const [teacherData, setTeacherData] = useState<Teacher[]>([]);
   
   // Show summary state
   const [showSummary, setShowSummary] = useState(false);
   const [teacherInfo, setTeacherInfo] = useState<Teacher | null>(null);
-
+  
+  //fetch teacher data from API
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        const response = await axiosInstance.get('/teachers');
+        setTeacherData(response.data);
+      } catch (error) {
+        console.error('Error fetching teachers:', error);
+      }
+    };
+    fetchTeachers();
+  }, []);
   // Calculate total amount
   const totalAmount = bookEntries.reduce((sum, entry) => sum + entry.total, 0);
 
@@ -54,7 +69,7 @@ export default function AddBillPage() {
       return true;
     }
   };
-
+  // console.log('teacherData', teacherData);
   // Validate mobile number (10 digits)
   const validateMobile = (value: string) => {
     if (!/^\d{10}$/.test(value)) {
@@ -230,11 +245,11 @@ export default function AddBillPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-gray-600 text-sm">Name</p>
-                    <p className="font-medium">{teacherInfo.name}</p>
+                    <p className="font-medium">{teacherInfo.teacherName}</p>
                   </div>
                   <div>
                     <p className="text-gray-600 text-sm">School</p>
-                    <p className="font-medium">{teacherInfo.school}</p>
+                    <p className="font-medium">{teacherInfo.schoolName}</p>
                   </div>
                 </div>
               ) : (
@@ -296,6 +311,26 @@ export default function AddBillPage() {
           <div className="bg-blue-50 rounded-lg shadow p-6">
             <form onSubmit={handleSubmit}>
               {/* Bill Details Section */}
+              <div className="col-span-2">
+                  <label htmlFor="mobile" className="block text-sm font-medium mb-1">Mobile</label>
+                  <input
+                    type="text"
+                    id="mobile"
+                    value={mobile}
+                    onChange={handleMobileChange}
+                    className={`w-full p-2 border ${mobileError ? 'border-red-500' : 'border-gray-300'} rounded`}
+                    required
+                    maxLength={10}
+                  />
+                  {mobileError && (
+                    <p className="mt-1 text-xs text-red-600">{mobileError}</p>
+                  )}
+                  {teacherInfo && (
+                    <p className="mt-1 text-xs text-green-600">
+                      Teacher Found: {teacherInfo.teacherName} - {teacherInfo.schoolName}
+                    </p>
+                  )}
+                </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
                   <label htmlFor="billNumber" className="block text-sm font-medium mb-1">Bill number</label>
@@ -331,26 +366,7 @@ export default function AddBillPage() {
                     </button>
                   </div>
                 </div>
-                <div className="col-span-2">
-                  <label htmlFor="mobile" className="block text-sm font-medium mb-1">Mobile</label>
-                  <input
-                    type="text"
-                    id="mobile"
-                    value={mobile}
-                    onChange={handleMobileChange}
-                    className={`w-full p-2 border ${mobileError ? 'border-red-500' : 'border-gray-300'} rounded`}
-                    required
-                    maxLength={10}
-                  />
-                  {mobileError && (
-                    <p className="mt-1 text-xs text-red-600">{mobileError}</p>
-                  )}
-                  {teacherInfo && (
-                    <p className="mt-1 text-xs text-green-600">
-                      Teacher Found: {teacherInfo.name} - {teacherInfo.school}
-                    </p>
-                  )}
-                </div>
+                
               </div>
               
               {/* Books Table Section */}
