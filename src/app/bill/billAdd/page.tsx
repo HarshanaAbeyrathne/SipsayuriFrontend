@@ -1,13 +1,13 @@
 'use client';
 import axiosInstance from '../../../components/axiosConfig'; // Update the path if necessary
 
-
 import React, { useEffect, useState } from 'react';
 
 // Interfaces
 interface BookEntry {
   id: number;
   bookName: string;
+  bookId: string; // Added to store the book ID
   price: number;
   quantity: number;
   freeIssue: number;
@@ -15,18 +15,35 @@ interface BookEntry {
 }
 
 interface Teacher {
-  id: number;
+  // id: number;
+  _id?: string; // Added optional _id property
   teacherName: string;
   mobile: string;
   schoolName: string;
 }
 
-// Mock teacher data (replace with API call in production)
-// const teacherData: Teacher[] = [
-//   { id: 1, name: 'Mrs. Smith', mobile: '9876543210', school: 'Central High School' },
-//   { id: 2, name: 'Mr. Johnson', mobile: '8765432109', school: 'Westside Elementary' },
-//   { id: 3, name: 'Ms. Williams', mobile: '7654321098', school: 'Eastview Academy' }
-// ];
+interface Book {
+  _id: string;
+  name: string;
+  defaultPrice: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+// Interface for bill submission
+interface BillSubmission {
+  billNumber: string;
+  date: string;
+  teacherId: string;
+  bookEntries: {
+    bookId: string;
+    price: number;
+    quantity: number;
+    freeIssue: number;
+  }[];
+}
 
 export default function AddBillPage() {
   const [billNumber, setBillNumber] = useState('');
@@ -35,16 +52,18 @@ export default function AddBillPage() {
   const [mobile, setMobile] = useState('');
   const [mobileError, setMobileError] = useState('');
   const [bookEntries, setBookEntries] = useState<BookEntry[]>([
-    { id: 1, bookName: '', price: 100, quantity: 25, freeIssue: 1, total: 2500 },
+    { id: 1, bookName: '', bookId: '', price: 0, quantity: 0, freeIssue: 0, total: 0 },
   ]);
   const [nextId, setNextId] = useState(2);
   const [teacherData, setTeacherData] = useState<Teacher[]>([]);
+  const [bookData, setBookData] = useState<Book[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Show summary state
   const [showSummary, setShowSummary] = useState(false);
   const [teacherInfo, setTeacherInfo] = useState<Teacher | null>(null);
   
-  //fetch teacher data from API
+  // Fetch teacher data from API
   useEffect(() => {
     const fetchTeachers = async () => {
       try {
@@ -56,6 +75,21 @@ export default function AddBillPage() {
     };
     fetchTeachers();
   }, []);
+
+  // Fetch book data from API
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const response = await axiosInstance.get('/books?active=true');
+        console.log('Books:', response.data); // Log the fetched books
+        setBookData(response.data);
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      }
+    };
+    fetchBooks();
+  }, []);
+
   // Calculate total amount
   const totalAmount = bookEntries.reduce((sum, entry) => sum + entry.total, 0);
 
@@ -69,7 +103,7 @@ export default function AddBillPage() {
       return true;
     }
   };
-  // console.log('teacherData', teacherData);
+
   // Validate mobile number (10 digits)
   const validateMobile = (value: string) => {
     if (!/^\d{10}$/.test(value)) {
@@ -82,9 +116,14 @@ export default function AddBillPage() {
   };
 
   // Fetch teacher info based on mobile number
+  // const fetchTeacherInfo = (mobileNumber: string) => {
+  //   // In a real application, replace this with an API call
+  //   const teacher = teacherData.find(t => t.mobile === mobileNumber);
+  //   return teacher || null;
+  // };
   const fetchTeacherInfo = (mobileNumber: string) => {
-    // In a real application, replace this with an API call
     const teacher = teacherData.find(t => t.mobile === mobileNumber);
+    // console.log('Fetched Teacher Info:', teacher); // Debug log
     return teacher || null;
   };
 
@@ -100,10 +139,11 @@ export default function AddBillPage() {
     const value = e.target.value;
     setMobile(value);
     validateMobile(value);
-    
+  
     // When mobile number is valid, try to fetch teacher info
     if (value.length === 10) {
       const teacher = fetchTeacherInfo(value);
+      console.log('Fetched Teacher Info:', teacher); // Debug log
       setTeacherInfo(teacher);
     } else {
       setTeacherInfo(null);
@@ -115,6 +155,7 @@ export default function AddBillPage() {
     const newEntry: BookEntry = {
       id: nextId,
       bookName: '',
+      bookId: '',
       price: 0,
       quantity: 0,
       freeIssue: 0,
@@ -129,6 +170,17 @@ export default function AddBillPage() {
     const updatedEntries = bookEntries.map(entry => {
       if (entry.id === id) {
         const updatedEntry = { ...entry, [field]: value };
+        
+        // If book name is changed, update the price and bookId with the default price
+        if (field === 'bookName' && typeof value === 'string') {
+          const selectedBook = bookData.find(book => book.name === value);
+          if (selectedBook) {
+            updatedEntry.price = selectedBook.defaultPrice;
+            updatedEntry.bookId = selectedBook._id; // Store the book ID
+            // Update total based on the new price
+            updatedEntry.total = updatedEntry.quantity * selectedBook.defaultPrice;
+          }
+        }
         
         // Auto-calculate total when quantity or price changes
         if (field === 'quantity' || field === 'price') {
@@ -180,27 +232,116 @@ export default function AddBillPage() {
     }
   };
 
-  // Handle final confirmation
-  const handleConfirmSubmit = () => {
-    // Here, you would send the data to your backend
-    console.log({
-      billNumber,
-      date,
-      mobile,
-      teacherInfo,
-      bookEntries,
-      totalAmount
-    });
-    
-    // Reset form after successful submission
-    alert('Bill submitted successfully!');
-    setShowSummary(false);
-    setBillNumber('');
-    setDate('');
-    setMobile('');
-    setBookEntries([{ id: 1, bookName: '', price: 0, quantity: 0, freeIssue: 0, total: 0 }]);
-    setNextId(2);
-    setTeacherInfo(null);
+  // Prepare bill data for submission
+  const prepareBillData = (): BillSubmission | null => {
+    // console.log('Teacher Info:', teacherInfo);
+    if (!teacherInfo || !teacherInfo._id) {
+      alert('No teacher information found. Please enter a valid mobile number.');
+      return null;
+    }
+  
+    const formattedBookEntries = bookEntries.map(entry => ({
+      bookId: entry.bookId,
+      price: entry.price,
+      quantity: entry.quantity,
+      freeIssue: entry.freeIssue,
+    }));
+  
+    return {
+      billNumber: `BILL-${billNumber}`,
+      date: new Date(date).toISOString(),
+      teacherId: String(teacherInfo._id), // Ensure teacherId is valid
+      bookEntries: formattedBookEntries,
+    };
+  };
+
+  // Handle final confirmation and submit to API
+  // const handleConfirmSubmit = async () => {
+  //   try {
+  //     setIsSubmitting(true);
+      
+  //     const billData = prepareBillData();
+  //     if (!billData) {
+  //       setIsSubmitting(false);
+  //       return;
+  //     }
+
+  //     // Send the data to your backend
+  //     const response = await axiosInstance.post('/bills', {
+  //       billNumber: billData.billNumber,
+  //       date: billData.date,
+  //       teacherId: billData.teacherId,
+  //       bookEntries: billData.bookEntries.map(entry => ({
+  //         bookId: entry.bookId,
+  //         price: entry.price,
+  //         quantity: entry.quantity,
+  //         freeIssue: entry.freeIssue
+  //       }))
+  //     });
+      
+  //      // Log the response for debugging
+      
+  //     // Handle successful response
+  //     
+      
+  //     // Reset form after successful submission
+  //     alert('Bill submitted successfully!');
+  //     setShowSummary(false);
+  //     setBillNumber('');
+  //     setDate('');
+  //     setMobile('');
+  //     setBookEntries([{ id: 1, bookName: '', bookId: '', price: 0, quantity: 0, freeIssue: 0, total: 0 }]);
+  //     setNextId(2);
+  //     setTeacherInfo(null);
+  //   } catch (error) {
+  //     console.error('Error submitting bill:', error);
+  //     alert('Failed to submit bill. Please try again.');
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
+  const handleConfirmSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+  
+      const billData = prepareBillData();
+      if (!billData) {
+        setIsSubmitting(false);
+        return;
+      }
+  
+      // console.log('Submitting Bill Data:', billData); // Debug log
+  
+      const response = await axiosInstance.post('/bills', {
+        billNumber: billData.billNumber,
+        date: billData.date,
+        teacherId: billData.teacherId,
+        bookEntries: billData.bookEntries.map(entry => ({
+          bookId: entry.bookId,
+          price: entry.price,
+          quantity: entry.quantity,
+          freeIssue: entry.freeIssue,
+        })),
+      });
+  
+      console.log('Bill submitted successfully:', response.data);
+  
+      // Reset form after successful submission
+      alert('Bill submitted successfully!');
+      setShowSummary(false);
+      setBillNumber('');
+      setDate('');
+      setMobile('');
+      setBookEntries([{ id: 1, bookName: '', bookId: '', price: 0, quantity: 0, freeIssue: 0, total: 0 }]);
+      setNextId(2);
+      setTeacherInfo(null);
+    } catch (error) {
+      console.error('Error submitting bill:', error);
+      alert('Failed to submit bill. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Handle back to edit
@@ -225,7 +366,7 @@ export default function AddBillPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-gray-600 text-sm">Bill Number</p>
-                  <p className="font-medium">{billNumber}</p>
+                  <p className="font-medium">BILL-{billNumber}</p>
                 </div>
                 <div>
                   <p className="text-gray-600 text-sm">Date</p>
@@ -294,6 +435,7 @@ export default function AddBillPage() {
                 type="button"
                 onClick={handleBackToEdit}
                 className="bg-gray-200 text-gray-800 px-6 py-2 rounded-full shadow-sm hover:bg-gray-300"
+                disabled={isSubmitting}
               >
                 Back to Edit
               </button>
@@ -301,8 +443,9 @@ export default function AddBillPage() {
                 type="button"
                 onClick={handleConfirmSubmit}
                 className="bg-green-100 text-green-600 px-6 py-2 rounded-full shadow-sm hover:bg-green-200"
+                disabled={isSubmitting}
               >
-                Confirm & Submit
+                {isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
               </button>
             </div>
           </div>
@@ -358,13 +501,6 @@ export default function AddBillPage() {
                       required
                     />
                   </div>
-                  <div className="mt-6">
-                    <button type="button" className="p-2 border border-gray-300 bg-white rounded-md">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
                 
               </div>
@@ -393,10 +529,11 @@ export default function AddBillPage() {
                             required
                           >
                             <option value="">Select a book</option>
-                            <option value="Book 1">Book 1</option>
-                            <option value="Book 2">Book 2</option>
-                            <option value="Book 3">Book 3</option>
-                            <option value="Book 4">Book 4</option>
+                            {bookData.map((book) => (
+                              <option key={book._id} value={book.name}>
+                                {book.name}
+                              </option>
+                            ))}
                           </select>
                         </td>
                         <td className="py-2 px-3">

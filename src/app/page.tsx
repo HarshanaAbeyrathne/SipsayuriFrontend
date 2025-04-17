@@ -32,7 +32,7 @@ export default function Home() {
       title: 'Book Management',
       description: 'Maintain and organize book inventory',
       icon: '📚',
-      path: '/book-management',
+      path: '/book/addBooks',
       color: 'bg-amber-500 hover:bg-amber-600'
     }
   ];

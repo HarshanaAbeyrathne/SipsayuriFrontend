@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDropdownOpen2, setIsDropdownOpen2] = useState(false);
 
   return (
     <nav className="bg-gray-800 text-white p-4">
@@ -36,6 +37,29 @@ const Navbar = () => {
                 <li className="px-4 py-2 hover:bg-gray-600">
                   <Link href="/teacher/viewAllTeachers" className="block">
                     Display Teachers
+                  </Link>
+                </li>
+              </ul>
+            )}
+          </li>
+
+          <li className="relative">
+            <button
+              onClick={() => setIsDropdownOpen2(!isDropdownOpen2)}
+              className="hover:underline focus:outline-none"
+            >
+              Book
+            </button>
+            {isDropdownOpen2 && (
+              <ul className="absolute bg-gray-700 text-white mt-2 rounded shadow-lg">
+                <li className="px-4 py-2 hover:bg-gray-600">
+                  <Link href="/book/addBooks" className="block">
+                    Add Book
+                  </Link>
+                </li>
+                <li className="px-4 py-2 hover:bg-gray-600">
+                  <Link href="/book/viewBooks" className="block">
+                    edit book details
                   </Link>
                 </li>
               </ul>
