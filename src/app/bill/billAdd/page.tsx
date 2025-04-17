@@ -609,8 +609,18 @@ export default function AddBillPage() {
                 </button>
               </div>
             </form>
+            
           </div>
         )}
+        <h1>
+          If not displaying the teacher's name, please{' '}
+          <a
+            href="/teacher/addTeacher"
+            className="text-blue-600 hover:underline"
+          >
+            add teacher details here
+          </a>.
+        </h1>
       </div>
     </div>
   );
